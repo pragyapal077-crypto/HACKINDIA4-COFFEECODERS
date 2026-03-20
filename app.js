@@ -792,7 +792,7 @@ window.renderDoctorGrid = () => {
                     <p class="text-[9px] text-slate-400 font-bold">L-SYNC: ${doc.lastActive || 'Now'}</p>
                 </div>
             </div>
-            <h3 class="font-extrabold text-lg text-slate-800 leading-tight mb-1">${doc.name}</h3>
+            <h3 class="font-extrabold text-lg text-slate-800 leading-tight mb-1 break-words">${doc.name}</h3>
             <p class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-5">${doc.shift || 'General'} Duty</p>
             <div class="flex items-center justify-between pt-4 border-t border-slate-50" onclick="event.stopPropagation()">
                 <span class="text-xs font-bold text-slate-500">Consultation Fee</span>
@@ -1367,8 +1367,8 @@ function AdminPanelView() {
     `;
     
     return `
-        <div class="flex flex-col md:flex-row h-full w-full bg-slate-50 animate-in relative overflow-hidden">
-            <aside class="w-full md:w-80 bg-white border-r border-slate-200 p-5 md:p-6 flex flex-col shrink-0 overflow-y-auto custom-scrollbar md:h-full md:min-h-0">
+        <div class="flex flex-col md:flex-row h-full w-full max-w-full bg-slate-50 animate-in relative overflow-hidden">
+            <aside class="w-full md:w-80 bg-white border-r border-slate-200 p-5 md:p-6 flex flex-col shrink-0 overflow-y-auto overflow-x-hidden custom-scrollbar md:h-full md:min-h-0">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center gap-3">
                         <div class="p-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-200">
@@ -1490,36 +1490,36 @@ function AdminPanelView() {
                 </div>
             </aside>
 
-            <main class="flex-1 min-h-0 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-slate-50 md:h-full">
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+            <main class="flex-1 min-h-0 p-4 md:p-8 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 md:h-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
                         <div class="flex justify-between items-start mb-2 text-slate-400">
                             <i class="fa-solid fa-phone text-lg"></i>
                             <span class="text-[8px] font-bold tracking-widest uppercase">Contact</span>
                         </div>
                         <input id="admin-phone-${h.id}" type="tel" value="${h.phone || ''}" oninput="window.updateHospitalString('${h.id}', 'phone', this.value)" class="text-sm font-extrabold w-full bg-transparent outline-none text-slate-800 border-b border-dashed border-slate-200 pb-1" placeholder="Add Phone">
                     </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
                         <div class="flex justify-between items-start mb-2 text-blue-500">
                             <i class="fa-solid fa-bed text-lg"></i>
                             <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Gen Ward</span>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <input id="admin-beds-${h.id}" type="number" value="${h.beds}" oninput="window.updateHospitalStat('${h.id}', 'beds', this.value)" class="text-2xl font-extrabold w-16 bg-transparent outline-none text-slate-800">
-                            <span class="text-[10px] text-slate-400 uppercase font-bold">Beds</span>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold leading-tight">Beds</span>
                         </div>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
                         <div class="flex justify-between items-start mb-2 text-amber-500">
                             <i class="fa-solid fa-truck-medical text-lg"></i>
                             <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Emergency</span>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <input id="admin-amb-${h.id}" type="number" value="${h.ambulances || 0}" oninput="window.updateHospitalStat('${h.id}', 'ambulances', this.value)" class="text-2xl font-extrabold w-16 bg-transparent outline-none text-slate-800">
-                            <span class="text-[10px] text-slate-400 uppercase font-bold">Ambulance</span>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold leading-tight break-words">Ambulance</span>
                         </div>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm min-w-0">
                         <div class="flex justify-between items-start mb-3 text-red-500">
                             <i class="fa-solid fa-heart-pulse text-xl"></i>
                             <span class="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Capacity</span>
