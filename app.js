@@ -1491,7 +1491,7 @@ function AdminPanelView() {
             </aside>
 
             <main class="flex-1 min-h-0 p-4 md:p-8 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 md:h-full">
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                <div class="grid grid-cols-2 gap-4 mb-8">
                     <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
                         <div class="flex justify-between items-start mb-2 text-slate-400">
                             <i class="fa-solid fa-phone text-lg"></i>
