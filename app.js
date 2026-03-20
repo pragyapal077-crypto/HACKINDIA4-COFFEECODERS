@@ -165,4 +165,187 @@ const SMART_SEARCH_MAP = {
     'eye': 'ophthalmologist', 'aankh': 'ophthalmologist', 'vision': 'ophthalmologist',
     'emergency': 'emergency specialist'
 };
+const SMART_SEARCH_MAP = {
+    'heart': 'cardiologist', 'dil': 'cardiologist', 'chest': 'cardiologist', 'attack': 'cardiologist',
+    'head': 'neurologist', 'brain': 'neurologist', 'stroke': 'neurologist', 'sir': 'neurologist',
+    'bone': 'orthopedic', 'fracture': 'orthopedic', 'haddi': 'orthopedic', 'accident': 'emergency specialist',
+    'child': 'pediatrician', 'kid': 'pediatrician', 'baby': 'pediatrician', 'fever': 'general physician',
+    'skin': 'dermatologist', 'burn': 'dermatologist', 'rash': 'dermatologist',
+    'stomach': 'gastroenterologist', 'pet': 'gastroenterologist', 'vomit': 'gastroenterologist',
+    'lungs': 'pulmonologist', 'breath': 'pulmonologist', 'asthma': 'pulmonologist',
+    'women': 'gynecologist', 'pregnancy': 'gynecologist',
+    'eye': 'ophthalmologist', 'vision': 'ophthalmologist',
+    'emergency': 'emergency specialist'
+};
+
+window.showToast = function(msg) {
+    const container = document.getElementById('app-container');
+    if (!container) return;
+    const id = 't' + Date.now();
+    const toastHTML = `
+        <div id="${id}" class="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-5 py-3 rounded-full font-black text-[10px] text-center uppercase tracking-widest shadow-2xl border border-slate-700 animate-in whitespace-nowrap">
+            ${msg}
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', toastHTML);
+    setTimeout(() => document.getElementById(id)?.remove(), 3500);
+};
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function mergeHospitals() {
+    let merged = [...state.osmHospitals];
+    
+    state.firebaseHospitals.forEach(fbH => {
+        const hLat = parseFloat(fbH.lat) || state.location.lat;
+        const hLng = parseFloat(fbH.lng) || state.location.lng;
+        
+        fbH.distance = calculateDistance(state.location.lat, state.location.lng, hLat, hLng);
+        
+        const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const fbName = normalize(fbH.name);
+        
+        const idx = merged.findIndex(h => 
+            h.id === fbH.id || normalize(h.name) === fbName
+        );
+        
+        if (idx > -1) {
+            merged[idx] = { ...merged[idx], ...fbH, isCloudSynced: true, id: fbH.id };
+        } else {
+            merged.push({ ...fbH, isCloudSynced: true });
+        }
+    });
+    
+    merged.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+    state.hospitals = merged;
+}
+
+function listenToFirebase() {
+    const hospitalsRef = collection(db, 'artifacts', appId, 'public', 'data', 'hospitals');
+    onSnapshot(hospitalsRef, (snapshot) => {
+        state.firebaseHospitals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        mergeHospitals();
+        window.updateLiveDOM();
+    });
+}
+
+async function initApp() {
+    listenToFirebase();
+    const fallbackTimer = setTimeout(() => {
+        mergeHospitals();
+        setState({ loading: false });
+    }, 5000);
+
+    try { 
+        await signInAnonymously(auth); 
+    } catch (e) {}
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        state.location = { lat: latitude, lng: longitude, granted: true, name: "GPS Active" };
+        
+        try {
+            const osmQuery = `[out:json];node["amenity"="hospital"](around:100000,${latitude},${longitude});out body;`;
+            const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(osmQuery)}`);
+            const data = await res.json();
+            
+            const specs = ["Cardiologist", "Neurologist", "Orthopedic Surgeon", "General Physician", "Pediatrician"];
+            const elements = data.elements.slice(0, 100); 
+            
+            state.osmHospitals = elements.map(h => {
+                const spec = specs[Math.floor(Math.random() * specs.length)];
+                const randomPhone = '+91-' + Math.floor(9000000000 + Math.random() * 999999999);
+                return {
+                    id: h.id.toString(), 
+                    name: h.tags.name || "Medical Center", 
+                    lat: h.lat, 
+                    lng: h.lon,
+                    distance: calculateDistance(latitude, longitude, h.lat, h.lon),
+                    beds: Math.floor(Math.random() * 100) + 20, 
+                    icuBeds: Math.floor(Math.random() * 20) + 5, 
+                    ventilators: Math.floor(Math.random() * 10) + 2, 
+                    doctors: Math.floor(Math.random() * 30) + 5, 
+                    cost: Math.floor(Math.random() * 1000) + 300, 
+                    specialty: spec,
+                    blood: { 
+                        'O+': Math.floor(Math.random() * 50), 
+                        'O-': Math.floor(Math.random() * 20), 
+                        'A+': Math.floor(Math.random() * 40), 
+                        'A-': Math.floor(Math.random() * 15), 
+                        'B+': Math.floor(Math.random() * 45), 
+                        'B-': Math.floor(Math.random() * 10), 
+                        'AB+': Math.floor(Math.random() * 25), 
+                        'AB-': Math.floor(Math.random() * 5) 
+                    }, 
+                    medicines: { "Oxygen Cylinders": Math.floor(Math.random() * 100) },
+                    doctorsList: [{type: 'General Physician', price: 500}],
+                    phone: randomPhone,
+                    isAutoPilot: false
+                };
+            });
+            mergeHospitals();
+            clearTimeout(fallbackTimer);
+            setState({ loading: false });
+        } catch (e) {
+            clearTimeout(fallbackTimer);
+            setState({ loading: false });
+        }
+    }, () => {
+        clearTimeout(fallbackTimer);
+        setState({ loading: false });
+    }, { timeout: 5000, enableHighAccuracy: true });
+}
+
+window.updateLiveDOM = () => {
+    if (state.view === 'user') {
+        if (state.activeTab === 'home') {
+            const el = document.getElementById('hlist');
+            if(el) { el.innerHTML = window.renderList(); lucide.createIcons(); }
+        } else if (state.activeTab === 'blood') {
+            const el = document.getElementById('blood-list-container');
+            if(el) { el.innerHTML = window.renderBloodList(); lucide.createIcons(); }
+        } else if (state.activeTab === 'map') {
+            if(window.updateMapMarkers) window.updateMapMarkers();
+        }
+        
+        if (state.viewingHospitalDetail) {
+            const popupContent = document.getElementById('popup-internal-content');
+            if(popupContent) {
+                popupContent.innerHTML = window.renderPopupInnerHtml();
+                lucide.createIcons();
+            }
+        }
+    } else if (state.view === 'admin') {
+        const h = state.hospitals.find(x => x.id === state.adminHospitalId);
+        if (h) {
+            const bedsInp = document.getElementById(`admin-beds-${h.id}`);
+            if (bedsInp && document.activeElement !== bedsInp) bedsInp.value = h.beds;
+            
+            const icuInp = document.getElementById(`admin-icu-${h.id}`);
+            if (icuInp && document.activeElement !== icuInp) icuInp.value = h.icuBeds;
+
+            const phoneInp = document.getElementById(`admin-phone-${h.id}`);
+            if (phoneInp && document.activeElement !== phoneInp) phoneInp.value = h.phone || '';
+
+            Object.keys(h.blood || {}).forEach(bType => {
+                const safeId = bType.replace('+', 'p').replace('-', 'm');
+                const bloodInp = document.getElementById(`admin-blood-${h.id}-${safeId}`);
+                if(bloodInp && document.activeElement !== bloodInp) bloodInp.value = h.blood[bType];
+            });
+        }
+    }
+};
+
+window.debounceTimer = null;
+window.triggerAutoSave = (hId) => {
+    clearTimeout(window.debounceTimer);
+    window.debounceTimer = setTimeout(async () => {
+        const h = state.hospitals.find(x => x.id === hId);
+        if (h) {
 
