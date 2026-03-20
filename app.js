@@ -724,3 +724,174 @@ window.renderPopupInnerHtml = () => {
                 <i data-lucide="map" class="w-3 h-3 mt-0.5 shrink-0"></i> ${h.address || 'Address details not available'}
             </p>
         </div>
+<div class="p-6 space-y-6 bg-white">
+            
+            <div class="mt-2 space-y-4">
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Emergency Contact</h4>
+                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="text-xs font-bold text-slate-700">Hospital Desk</span>
+                        <span class="text-xs font-black ${h.phone ? 'text-blue-600' : 'text-slate-400'}">${h.phone || 'N/A'}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2">
+                <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center">
+                    <span class="text-xl font-black text-blue-600">${h.beds || 0}</span>
+                    <span class="text-[8px] font-black uppercase text-slate-400 mt-1">${t().beds}</span>
+                </div>
+                <div class="p-3 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center justify-center text-center">
+                    <span class="text-xl font-black text-red-600">${h.icuBeds || 0}</span>
+                    <span class="text-[8px] font-black uppercase text-slate-400 mt-1">${t().icuBeds}</span>
+                </div>
+                <div class="p-3 bg-teal-50 rounded-2xl border border-teal-100 flex flex-col items-center justify-center text-center">
+                    <span class="text-xl font-black text-teal-600">${h.ventilators || 0}</span>
+                    <span class="text-[8px] font-black uppercase text-slate-400 mt-1">${t().ventilators}</span>
+                </div>
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col items-center justify-center text-center">
+                    <span class="text-xl font-black text-amber-600">${h.ambulances || 0}</span>
+                    <span class="text-[8px] font-black uppercase text-slate-400 mt-1">Ambulance</span>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                    <i data-lucide="stethoscope" class="w-3 h-3"></i> Available Doctors
+                </h4>
+                <div class="space-y-2">
+                    ${docs.length > 0 ? docs.map(d => `
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div>
+                                <p class="text-xs font-bold text-slate-800">${d.name}</p>
+                                <p class="text-[9px] font-bold text-slate-400">${d.type || 'Specialist'}</p>
+                            </div>
+                            <span class="text-xs font-black text-green-600">₹${d.price}</span>
+                        </div>
+                    `).join('') : `
+                        <div class="p-4 text-center border border-dashed border-slate-200 rounded-xl">
+                            <p class="text-xs font-bold text-slate-400">No active doctors found.</p>
+                        </div>
+                    `}
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">${t().bloodBank}</h4>
+                    <div class="grid grid-cols-4 gap-2">
+                        ${Object.entries(h.blood || {'O+':0,'O-':0,'A+':0,'A-':0,'B+':0,'B-':0,'AB+':0,'AB-':0}).map(([type, qty]) => `
+                            <div class="p-2 bg-slate-50 rounded-xl text-center border border-slate-100">
+                                <p class="text-[10px] font-black text-slate-800">${type}</p>
+                                <p class="text-[9px] font-bold ${qty > 0 && h.isCloudSynced ? 'text-green-600' : 'text-slate-400'}">${qty}u</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4 pb-safe">
+                <a href="tel:${h.phone || '108'}" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black text-center text-sm uppercase active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-lg shadow-red-500/30">
+                    <i data-lucide="phone" class="w-4 h-4"></i> Call
+                </a>
+                <button onclick="window.handleNavigation('${h.id}')" class="flex-[1.5] py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30">
+                    <i data-lucide="navigation" class="w-4 h-4"></i> ${t().openMaps}
+                </button>
+            </div>
+        </div>
+    `;
+};
+
+function HospitalDetailPopup() {
+    if (!state.viewingHospitalDetail) return '';
+    return `
+        <div class="fixed inset-0 z-[1001] bg-slate-900/60 backdrop-blur-md flex items-end sm:items-center justify-center animate-in overflow-y-auto" onclick="window.setState({viewingHospitalDetail: null}, true)">
+            <div id="popup-internal-content" class="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl slide-up overflow-hidden" onclick="event.stopPropagation()">
+                ${window.renderPopupInnerHtml()}
+            </div>
+        </div>
+    `;
+}
+
+window.askAI = async (text) => {
+    if (!apiKey) {
+        window.showToast("API Key Missing.");
+        return;
+    }
+    if (!text.trim()) return;
+    
+    const msgs = [...state.aiMessages, { role: 'user', text }];
+    setState({ aiMessages: msgs, isAiThinking: true }, false);
+    window.renderAIModal();
+
+    const topHospitals = state.hospitals.slice(0, 3).map(h => `${h.name} (${h.beds} beds)`).join(', ');
+    const langNames = {en: 'English', hi: 'Hindi', bn: 'Bengali', ta: 'Tamil', te: 'Telugu'};
+    const currentLang = langNames[state.lang] || 'English';
+
+    const sysPrompt = `
+        You are Lifeline AI, an advanced, empathetic, and highly capable medical support and triage assistant for India. 
+        Your primary goal is to provide immediate, actionable first-aid advice, assess symptom severity, and guide patients to the nearest appropriate medical facility.
+        1. Always maintain a professional, calm, and highly detailed medical tone.
+        2. If symptoms indicate a severe life-threatening emergency, immediately instruct them to CALL 108.
+        3. You have access to their live location and nearby hospitals. User Location: ${state.location.name}. 
+        Top hospitals nearby based on live data: ${topHospitals}.
+        4. Respond entirely and fluently in ${currentLang}.
+    `;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                contents: [{ parts: [{ text }] }], 
+                systemInstruction: { parts: [{ text: sysPrompt }] } 
+            })
+        });
+        const result = await response.json();
+        const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Call 108 immediately.";
+        state.aiMessages = [...msgs, { role: 'ai', text: aiText }];
+        state.isAiThinking = false;
+        window.renderAIModal();
+    } catch (e) {
+        state.aiMessages = [...msgs, { role: 'ai', text: "Connection error. Please call 108 directly." }];
+        state.isAiThinking = false;
+        window.renderAIModal();
+    }
+};
+
+window.renderAIModal = () => {
+    const container = document.getElementById('ai-modal-root');
+    if(!container) return;
+    
+    container.innerHTML = `
+        <div class="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-900/40 backdrop-blur-sm px-4 pb-10 animate-in" onclick="window.setState({isAiModal: false}, true)">
+            <div class="bg-white w-full max-w-md h-[85vh] rounded-[2.5rem] flex flex-col shadow-2xl overflow-hidden slide-up" onclick="event.stopPropagation()">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center">
+                            <i data-lucide="bot" class="text-white w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-black text-slate-900 leading-none">${t().aiTitle}</h2>
+                            <p class="text-[10px] font-bold text-green-500 uppercase mt-1">${t().aiSub}</p>
+                        </div>
+                    </div>
+                    <button onclick="window.setState({isAiModal: false}, true)" class="p-2 bg-slate-50 rounded-xl text-slate-400">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div id="ai-chat-box" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50 hide-scrollbar">
+                    ${state.aiMessages.map(m => `
+                        <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
+                            <div class="max-w-[85%] p-4 rounded-3xl ${m.role === 'user' ? 'bg-blue-600 text-white rounded-br-none shadow-lg' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none shadow-sm'}">
+                                <p class="text-sm font-medium leading-relaxed">${m.text}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${state.isAiThinking ? `
+                        <div class="flex justify-start">
+                            <div class="bg-white p-4 rounded-3xl flex gap-1 items-center shadow-sm">
+                                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    ` : ''}
