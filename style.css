@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Animations */
+.animate-in { 
+    animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+}
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+.slide-up { 
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+}
+@keyframes slideUp { 
+    from { transform: translateY(100%); } 
+    to { transform: translateY(0); } 
+}
+
+/* Hide default browser scrollbars for clean UI */
+.hide-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.hide-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+/* Live red pulse badge */
+.live-badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-red 1.5s infinite;
+}
+@keyframes pulse-red { 
+    0%, 100% { opacity: 1; transform: scale(1); } 
+    50% { opacity: 0.4; transform: scale(1.2); } 
+}
+
+/* Remove default arrows from number inputs */
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+/* Leaflet Map Overrides */
+.leaflet-control-attribution { 
+    display: none !important; 
+}
+.amb-marker { 
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)); 
+}
+
+/* AI Loading Dots */
+.typing-dot { 
+    width: 4px; 
+    height: 4px; 
+    background: #94a3b8; 
+    border-radius: 50%; 
+    animation: blink 1.4s infinite; 
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 
+    0%, 100% { opacity: 0.2; } 
+    50% { opacity: 1; } 
+}
+
+/* Safe Area Paddings for Modern Phones */
+.pt-safe { padding-top: max(1rem, var(--safe-top)); }
+.pb-safe { padding-bottom: max(1.5rem, var(--safe-bottom)); }
+
+/* Interactive Cards */
+.feature-card { 
+    transition: all 0.2s ease; 
+    cursor: pointer; 
+}
+.feature-card:active { 
+    transform: scale(0.96); 
+    opacity: 0.9; 
+}
+
+/* Floating Action Button (AI Bot) */
+.fab-btn { 
+    position: fixed; 
+    bottom: calc(90px + var(--safe-bottom)); 
+    right: 20px; 
+    z-index: 500; 
+}
