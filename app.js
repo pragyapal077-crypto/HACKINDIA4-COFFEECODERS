@@ -604,3 +604,123 @@ window.updateMapMarkers = () => {
         }
     });
 }
+unction UserHomeView() {
+    return `
+        <div class="p-4 space-y-6 pb-24 overflow-y-auto flex-1 hide-scrollbar">
+            <div class="bg-white p-6 rounded-[2rem] shadow-xl border border-slate-50">
+                <h2 class="text-lg font-black text-slate-900 mb-4">${t().searchTitle}</h2>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                    <input type="text" placeholder="${t().searchPlaceholder}" class="w-full pl-14 pr-5 py-5 bg-slate-50 rounded-[2rem] font-bold text-sm outline-none shadow-inner" value="${state.searchQuery}" oninput="window.state.searchQuery=this.value; document.getElementById('hlist').innerHTML=window.renderList(); lucide.createIcons();"/>
+                </div>
+            </div>
+            <div id="hlist" class="space-y-4">
+                ${window.renderList()}
+            </div>
+        </div>
+    `;
+}
+
+window.renderBloodList = () => {
+    return state.hospitals.map(h => `
+        <div onclick="window.setState({viewingHospitalDetail: '${h.id}'}, true)" class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm cursor-pointer active:bg-slate-50 transition-colors relative">
+            ${h.isCloudSynced ? `<div class="absolute top-0 right-0 bg-blue-500 text-white text-[7px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-widest shadow-md">LIVE UPDATE</div>` : ''}
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center">
+                        <i data-lucide="navigation" class="w-5 h-5"></i>
+                    </div>
+                    <h4 class="font-black text-slate-800 text-sm truncate max-w-[140px]">${h.name||'Hospital'}</h4>
+                </div>
+                <span class="text-[9px] font-black text-slate-400 uppercase">${(h.distance||0).toFixed(2)} km</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+                ${Object.entries(h.blood||{'O+':0,'O-':0,'A+':0,'A-':0,'B+':0,'B-':0,'AB+':0,'AB-':0}).map(([type,q])=>`
+                    <div class="p-2 bg-slate-50 rounded-xl text-center border border-slate-100">
+                        <p class="text-[10px] font-black text-slate-800">${type}</p>
+                        <p class="text-[9px] font-bold ${q>0 && h.isCloudSynced ? 'text-green-600' : 'text-slate-400'}">${q}u</p>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+};
+
+function BloodBankView() {
+    return `
+        <div class="p-4 pb-24 animate-in flex-1 overflow-y-auto hide-scrollbar space-y-4">
+            <div class="bg-white p-8 rounded-[2rem] shadow-xl border border-slate-50">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center text-white">
+                        <i data-lucide="droplet" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900">${t().bloodBank}</h2>
+                </div>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">${t().inventoryNear}</p>
+            </div>
+            <div id="blood-list-container" class="space-y-4">
+                ${window.renderBloodList()}
+            </div>
+        </div>
+    `;
+}
+
+function FirstAidView() {
+    const guides = FIRST_AID_GUIDES[state.lang] || FIRST_AID_GUIDES['en'];
+    return `
+        <div class="p-4 pb-24 animate-in flex-1 overflow-y-auto hide-scrollbar space-y-4">
+            <div class="bg-white p-8 rounded-[2rem] shadow-xl border border-slate-50">
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="w-12 h-12 bg-teal-500 rounded-2xl flex items-center justify-center text-white">
+                        <i data-lucide="info" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900">${t().emergencyAid}</h2>
+                </div>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest">${t().emergencyGuides}</p>
+            </div>
+            ${guides.map(g => `
+                <div class="bg-white p-7 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-12 h-12 ${g.color} text-white rounded-2xl flex items-center justify-center shadow-lg">
+                            <i data-lucide="${g.icon}" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-lg font-black text-slate-800">${g.title}</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${g.steps.map((s, i) => `
+                            <div class="flex gap-4 items-start">
+                                <span class="w-6 h-6 bg-slate-50 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 border border-slate-100">${i+1}</span>
+                                <p class="text-xs font-medium text-slate-600 leading-relaxed">${s}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+window.renderPopupInnerHtml = () => {
+    const h = state.hospitals.find(x => x.id === state.viewingHospitalDetail);
+    if (!h) return '';
+    const docs = (h.doctorsList || []).filter(d => d.present);
+    
+    return `
+        <div class="p-6 ${h.isCloudSynced ? 'bg-blue-600' : 'bg-slate-800'} text-white relative">
+            <button onclick="window.setState({viewingHospitalDetail: null}, true)" class="absolute right-6 top-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2 mb-2">
+                ${h.isCloudSynced 
+                    ? `<span class="text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 bg-white/20 rounded-md live-badge">Live Sync</span>`
+                    : `<span class="text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 bg-white/20 rounded-md text-slate-300">Unverified Facility</span>`
+                }
+            </div>
+            <h2 class="text-2xl font-black leading-tight mb-1">${h.name || 'Hospital Details'}</h2>
+            <p class="text-sm font-medium opacity-90 flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3 h-3"></i> ${(h.distance || 0).toFixed(2)} km away
+            </p>
+            <p class="text-[10px] font-medium opacity-80 mt-1 flex items-start gap-1">
+                <i data-lucide="map" class="w-3 h-3 mt-0.5 shrink-0"></i> ${h.address || 'Address details not available'}
+            </p>
+        </div>
