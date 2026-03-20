@@ -57,6 +57,13 @@ function setState(newState, forceRender = true) {
 }
 window.setState = setState;
 
+function normalizeAdminEmail(raw) {
+    const v = (raw || '').trim().toLowerCase();
+    // Enforce a single domain format for admin accounts.
+    if (!v || !/^[a-z0-9._%+-]+@lifeline\.com$/.test(v)) return null;
+    return v;
+}
+
 const TRANSLATIONS = {
     en: { 
         gridTitle: "Emergency Grid", searchPlaceholder: "Search disease, symptoms, specialist...", 
@@ -449,11 +456,14 @@ window.toggleAutoPilot = (hId) => {
 window.handleLogin = async () => {
     const user = document.getElementById('login-user').value;
     const pass = document.getElementById('login-pass').value;
-    const safeUser = user.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'admin';
-    const email = safeUser + "@lifeline.admin.com";
+    const email = normalizeAdminEmail(user);
+    if (!email || !pass) {
+        window.showToast("Use admin format: name@lifeline.com");
+        return;
+    }
     try {
         await signInWithEmailAndPassword(auth, email, pass);
-        let admin = state.firebaseHospitals.find(a => a.adminUser === user);
+        let admin = state.firebaseHospitals.find(a => (a.adminUser || '').toLowerCase().trim() === email);
         if (admin) {
             // Prevent admin dashboard from loading without its hospital in `state.hospitals`.
             setState({ view: 'admin', adminHospitalId: admin.id }, false);
@@ -491,14 +501,14 @@ window.handleRegister = async () => {
     const phoneInput = document.getElementById('reg-phone');
     const phone = phoneInput ? phoneInput.value : '';
     if(!name || !user || !pass) return window.showToast("Required fields missing");
-    
-    const safeUser = user.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'admin' + Date.now();
-    const email = safeUser + "@lifeline.admin.com";
+
+    const email = normalizeAdminEmail(user);
+    if (!email) return window.showToast("Use admin format: name@lifeline.com");
     const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const nameQuery = normalize(name);
     const existingHospitalByName = state.hospitals.find(h => normalize(h.name) === nameQuery);
     const existingHospitalByAdmin = state.firebaseHospitals.find(
-        h => (h.adminUser || '').toLowerCase().trim() === user.toLowerCase().trim()
+        h => (h.adminUser || '').toLowerCase().trim() === email
     );
     const existingHospital = existingHospitalByAdmin || existingHospitalByName;
     const targetId = existingHospital ? existingHospital.id : 'h-' + Date.now();
@@ -507,7 +517,7 @@ window.handleRegister = async () => {
         id: targetId, 
         name: existingHospital ? existingHospital.name : name, 
         address: address, 
-        adminUser: user, 
+        adminUser: email, 
         adminPass: pass, 
         lat: lat, 
         lng: lng, 
@@ -569,6 +579,10 @@ window.handleRegister = async () => {
     } catch (e) {
         if (e && e.code === 'auth/wrong-password') {
             window.showToast("Account exists. Please use correct passcode.");
+            return;
+        }
+        if (e && e.code === 'auth/invalid-email') {
+            window.showToast("Invalid email. Use name@lifeline.com");
             return;
         }
         window.showToast("Firebase Error: " + e.message);
@@ -1608,8 +1622,8 @@ function LoginView() {
             </div>
             <div class="space-y-4 bg-white/5 p-6 rounded-[2.5rem] border border-white/10">
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Username</label>
-                    <input id="login-user" type="text" placeholder="Admin Username" class="w-full p-4 bg-slate-800 text-white rounded-2xl outline-none font-bold">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Admin Email</label>
+                    <input id="login-user" type="email" placeholder="admin@lifeline.com" class="w-full p-4 bg-slate-800 text-white rounded-2xl outline-none font-bold">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Secure Passcode</label>
@@ -1661,8 +1675,8 @@ function RegisterView() {
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Admin Username *</label>
-                        <input id="reg-user" type="text" placeholder="Choose Username" class="w-full p-4 bg-slate-800 text-white rounded-2xl outline-none font-bold text-sm">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Admin Email *</label>
+                        <input id="reg-user" type="email" placeholder="admin@lifeline.com" class="w-full p-4 bg-slate-800 text-white rounded-2xl outline-none font-bold text-sm">
                     </div>
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2 block">Admin Passcode *</label>
