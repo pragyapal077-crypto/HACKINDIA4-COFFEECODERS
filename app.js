@@ -895,3 +895,180 @@ window.renderAIModal = () => {
                             </div>
                         </div>
                     ` : ''}
+                     `;
+    lucide.createIcons();
+    const cb = document.getElementById('ai-chat-box'); 
+    if(cb) cb.scrollTop = cb.scrollHeight;
+};
+
+function AdminPanelView() {
+    const h = state.hospitals.find(h => h.id === state.adminHospitalId);
+    if (!h) return `
+        <div class="h-full flex flex-col items-center justify-center bg-slate-900 text-white">
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    `;
+    
+    return `
+        <div class="flex flex-col md:flex-row min-h-[100dvh] w-full bg-slate-50 animate-in relative">
+            <aside class="w-full md:w-80 bg-white border-r border-slate-200 p-6 flex flex-col shrink-0 overflow-y-auto custom-scrollbar md:h-[100dvh]">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-200">
+                            <i class="fa-solid fa-wave-square"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-extrabold tracking-tight text-slate-800 uppercase italic leading-none">Command</h1>
+                            <p class="text-[10px] text-slate-400 font-mono mt-1 w-[130px] truncate" id="sync-time">${h.name}</p>
+                        </div>
+                    </div>
+                    <button onclick="window.handleLogout()" class="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl shadow-sm flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="font-black text-indigo-900 flex items-center gap-2 text-xs uppercase tracking-wider">
+                            <i class="fa-solid fa-robot text-indigo-600"></i> Auto-Pilot
+                        </h3>
+                    </div>
+                    <button onclick="window.toggleAutoPilot('${h.id}')" class="w-12 h-6 rounded-full transition-colors relative shadow-inner ${h.isAutoPilot ? 'bg-indigo-600' : 'bg-slate-300'}">
+                        <div class="w-4 h-4 bg-white rounded-full absolute top-1 transition-all shadow-md ${h.isAutoPilot ? 'left-7' : 'left-1'}"></div>
+                    </button>
+                </div>
+
+                <div class="space-y-1 mb-8">
+                    <div class="flex items-center justify-between mb-3 px-2">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Depts</p>
+                        <button onclick="window.toggleModal('dept-modal', true)" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors">
+                            <i class="fa-solid fa-plus text-sm"></i>
+                        </button>
+                    </div>
+                    <div id="dept-list" class="space-y-1">
+                        ${(h.departments || []).map(dept => {
+                            const count = (h.doctorsList || []).filter(d => d.dept === dept.id && d.present).length;
+                            const isActive = state.adminUi.activeDeptId === dept.id;
+                            return `
+                                <button onclick="window.setActiveDept('${dept.id}')" class="w-full flex items-center justify-between p-3 rounded-xl transition-all ${isActive ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'hover:bg-slate-50 text-slate-600'}">
+                                    <div class="flex items-center gap-3">
+                                        <i class="fa-solid ${dept.icon} text-sm ${isActive ? 'text-emerald-600' : 'text-slate-400'}"></i>
+                                        <span class="font-bold text-sm tracking-tight">${dept.name}</span>
+                                    </div>
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full ${count === 0 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}">
+                                        ${count}
+                                    </span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-6 border-t border-slate-100">
+                    <div class="flex items-center justify-between px-2">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Critical Assets</p>
+                        <button onclick="window.toggleAssetEdit()" id="edit-assets-btn" class="p-1 ${state.adminUi.isEditingAssets ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-100'} rounded-md transition-colors">
+                            <i class="fa-solid fa-sliders text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="p-4 bg-slate-900 rounded-2xl text-white shadow-xl shadow-slate-200">
+                        <div class="space-y-4" id="resource-container">
+                            ${[
+                                { id: 'icuBeds', label: 'ICU BEDS', icon: 'fa-bed-pulse', color: 'blue', current: h.icuBeds, total: h.assetTotals?.icuBeds || 0 },
+                                { id: 'ventilators', label: 'VENTILATORS', icon: 'fa-wind', color: 'cyan', current: h.ventilators, total: h.assetTotals?.ventilators || 0 }
+                            ].map(item => {
+                                const pct = item.total > 0 ? (item.current / item.total) * 100 : 0;
+                                const isCritical = item.current < (item.id === 'icuBeds' ? 5 : 3);
+                                return `
+                                    <div>
+                                        <div class="flex justify-between text-[11px] mb-1.5 font-bold tracking-tight">
+                                            <span class="flex items-center gap-2 text-${item.color}-400">
+                                                <i class="fa-solid ${item.icon}"></i> ${item.label}
+                                            </span>
+                                            ${state.adminUi.isEditingAssets ? `
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-[8px] text-slate-500 uppercase">Max:</span>
+                                                    <input type="number" value="${item.total}" onchange="window.setCapacity('${item.id}', this.value)" class="bg-slate-800 text-white w-10 text-center rounded text-[10px] border border-slate-700 outline-none">
+                                                </div>
+                                            ` : `
+                                                <span id="val-${item.id}" class="${isCritical ? 'text-red-400 animate-pulse' : 'text-slate-400'}">${item.current} / ${item.total}</span>
+                                            `}
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex-1 bg-slate-800 h-2 rounded-full overflow-hidden">
+                                                <div class="h-full bg-${isCritical ? 'red' : item.color}-500 transition-all duration-500" style="width: ${pct}%"></div>
+                                            </div>
+                                            ${!state.adminUi.isEditingAssets ? `
+                                                <div class="flex gap-1.5">
+                                                    <button onclick="window.adjResourceAdmin('${item.id}', -1)" class="text-slate-500 hover:text-red-400 transition-colors"><i class="fa-solid fa-circle-minus"></i></button>
+                                                    <button onclick="window.adjResourceAdmin('${item.id}', 1)" class="text-slate-500 hover:text-green-400 transition-colors"><i class="fa-solid fa-circle-plus"></i></button>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4">
+                        <div class="flex items-center gap-2 mb-4">
+                            <i class="fa-solid fa-droplet text-red-500 text-xs"></i>
+                            <span class="text-xs font-bold text-slate-800">Blood Bank</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2" id="blood-bank-list">
+                            ${Object.entries(h.blood || {}).map(([type, units]) => `
+                                <div class="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                    <span class="text-[10px] font-black text-slate-400">${type}</span>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="window.adjBloodAdmin('${type}', -1)" class="text-slate-300 hover:text-red-500 font-bold">-</button>
+                                        <span class="text-xs font-black ${units < 5 ? 'text-red-600 animate-pulse' : 'text-slate-700'}">${units}</span>
+                                        <button onclick="window.adjBloodAdmin('${type}', 1)" class="text-slate-300 hover:text-green-500 font-bold">+</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-slate-50 md:h-[100dvh]">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <div class="flex justify-between items-start mb-2 text-slate-400">
+                            <i class="fa-solid fa-phone text-lg"></i>
+                            <span class="text-[8px] font-bold tracking-widest uppercase">Contact</span>
+                        </div>
+                        <input id="admin-phone-${h.id}" type="tel" value="${h.phone || ''}" oninput="window.updateHospitalString('${h.id}', 'phone', this.value)" class="text-sm font-extrabold w-full bg-transparent outline-none text-slate-800 border-b border-dashed border-slate-200 pb-1" placeholder="Add Phone">
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <div class="flex justify-between items-start mb-2 text-blue-500">
+                            <i class="fa-solid fa-bed text-lg"></i>
+                            <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Gen Ward</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="admin-beds-${h.id}" type="number" value="${h.beds}" oninput="window.updateHospitalStat('${h.id}', 'beds', this.value)" class="text-2xl font-extrabold w-16 bg-transparent outline-none text-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold">Beds</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <div class="flex justify-between items-start mb-2 text-amber-500">
+                            <i class="fa-solid fa-truck-medical text-lg"></i>
+                            <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Emergency</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="admin-amb-${h.id}" type="number" value="${h.ambulances || 0}" oninput="window.updateHospitalStat('${h.id}', 'ambulances', this.value)" class="text-2xl font-extrabold w-16 bg-transparent outline-none text-slate-800">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold">Ambulance</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-start mb-3 text-red-500">
+                            <i class="fa-solid fa-heart-pulse text-xl"></i>
+                            <span class="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Capacity</span>
+                        </div>
+                        <p class="text-2xl font-extrabold" id="stat-icu-usage">${h.assetTotals && h.assetTotals.icuBeds > 0 ? Math.round((h.icuBeds / h.assetTotals.icuBeds) * 100) : 0}%</p>
+                        <p class="text-[10px] text-slate-400 uppercase font-bold mt-1">ICU Occupancy</p>
+                    </div>
+                </div>
+
