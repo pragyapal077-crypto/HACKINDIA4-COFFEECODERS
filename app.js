@@ -1161,3 +1161,135 @@ function LoginView() {
             <button onclick="window.setState({view: 'user'})" class="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white z-10 hover:bg-white/20 transition-colors">
                 <i data-lucide="x" class="w-6 h-6"></i>
             </button>
+window.renderDoctorGrid = () => {
+    const h = state.hospitals.find(x => x.id === state.adminHospitalId);
+    if (!h) return;
+    const grid = document.getElementById('doctor-grid');
+    if(!grid) return;
+    
+    const searchInp = document.getElementById('staff-search');
+    const search = searchInp ? searchInp.value.toLowerCase() : '';
+    
+    const filtered = (h.staff || []).filter(doc => 
+        doc.dept === state.adminUi.activeDeptId && 
+        doc.name.toLowerCase().includes(search)
+    );
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full py-20 flex flex-col items-center justify-center text-slate-300 bg-white border border-dashed border-slate-200 rounded-[3rem]">
+                <i class="fa-solid fa-user-doctor text-5xl mb-4 opacity-10"></i>
+                <p class="font-bold">No unit staff detected</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = filtered.map(doc => `
+        <div onclick="window.toggleStaffPresence(${doc.id})" class="group relative cursor-pointer p-6 rounded-[2.5rem] border transition-all duration-300 hover:shadow-xl ${doc.present ? 'bg-white border-green-100' : 'bg-slate-100 border-slate-200 opacity-60 grayscale shadow-inner'}">
+            <button onclick="event.stopPropagation(); window.removeStaff(${doc.id})" class="absolute top-5 right-5 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+            <div class="flex justify-between items-start mb-6">
+                <div class="p-4 rounded-2xl ${doc.present ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-200 text-slate-400'}">
+                    <i class="fa-solid fa-user-doctor text-2xl"></i>
+                </div>
+                <div class="text-right">
+                    <div class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md mb-2 ${doc.present ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}">
+                        ${doc.present ? 'Active' : 'Standby'}
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-bold">L-SYNC: ${doc.lastActive}</p>
+                </div>
+            </div>
+            <h3 class="font-extrabold text-lg text-slate-800 leading-tight mb-1">${doc.name}</h3>
+            <p class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-5">${doc.shift} Duty</p>
+            <div class="flex items-center justify-between pt-5 border-t border-slate-50">
+                <div class="flex gap-1">
+                    <div class="h-1 w-4 rounded-full ${doc.present ? 'bg-emerald-500' : 'bg-slate-200'}"></div>
+                    <div class="h-1 w-4 rounded-full ${doc.present ? 'bg-emerald-500' : 'bg-slate-200'}"></div>
+                    <div class="h-1 w-1 rounded-full ${doc.present ? 'bg-emerald-500' : 'bg-slate-200'}"></div>
+                </div>
+                <div class="w-10 h-5 rounded-full relative transition-colors ${doc.present ? 'bg-emerald-500' : 'bg-slate-300'}">
+                    <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-all ${doc.present ? 'translate-x-5' : 'translate-x-0'} shadow-sm"></div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.initLeafletMap = () => {
+    if(window.mapInstance) {
+        window.mapInstance.off();
+        window.mapInstance.remove();
+    }
+    const container = document.getElementById('leaflet-map');
+    if(!container) return;
+    window.mapInstance = L.map('leaflet-map', { 
+        zoomControl: false, 
+        attributionControl: false 
+    }).setView([state.location.lat, state.location.lng], 14);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18
+    }).addTo(window.mapInstance);
+    const userHtml = `<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,1)] animate-pulse"></div>`;
+    const userIcon = L.divIcon({className: '', html: userHtml, iconSize: [16, 16], iconAnchor: [8,8]});
+    L.marker([state.location.lat, state.location.lng], {icon: userIcon, zIndexOffset: 1000})
+        .addTo(window.mapInstance)
+        .bindPopup('<b>Your Location</b>');
+    window.hospLayer = L.layerGroup().addTo(window.mapInstance);
+    window.updateMapMarkers();
+    const ambData = [
+        { plate: 'UP 14 AB 1024', type: 'Advanced Life Support (ALS)', phone: '+91-108', cost: '₹1200 base + ₹50/km', hospital: 'District Hospital' },
+        { plate: 'DL 1C BX 9876', type: 'Basic Life Support (BLS)', phone: '+91-9999888877', cost: '₹800 base + ₹30/km', hospital: 'City Care' },
+        { plate: 'HR 26 XX 5555', type: 'Neonatal Care Unit', phone: '+91-8888777766', cost: '₹2000 base + ₹60/km', hospital: 'Child Care Center' }
+    ];
+    const ambHtml = `<div class="w-6 h-6 bg-white rounded-full border-2 border-blue-600 shadow-[0_0_10px_rgba(255,255,255,1)] flex items-center justify-center text-[10px] amb-marker">🚑</div>`;
+    const ambIcon = L.divIcon({className: '', html: ambHtml, iconSize: [24, 24], iconAnchor: [12,12]});
+    if(window.ambMapInterval) clearInterval(window.ambMapInterval);
+    const ambs = [
+        L.marker([state.location.lat + 0.005, state.location.lng + 0.005], {icon: ambIcon}).addTo(window.mapInstance),
+        L.marker([state.location.lat - 0.003, state.location.lng + 0.008], {icon: ambIcon}).addTo(window.mapInstance),
+        L.marker([state.location.lat + 0.007, state.location.lng - 0.004], {icon: ambIcon}).addTo(window.mapInstance)
+    ];
+    ambs.forEach((amb, i) => {
+        amb.bindPopup(`
+            <div class="p-1 min-w-[140px]">
+                <div class="text-xs font-black text-blue-900">${ambData[i].type}</div>
+                <div class="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">${ambData[i].plate}</div>
+                <div class="text-[11px] font-black text-green-600 mt-2">Contact: ${ambData[i].phone}</div>
+                <div class="text-[10px] font-bold text-slate-600 mt-1 pb-1 border-b border-slate-100">Est. Cost: ${ambData[i].cost}</div>
+                <div class="text-[9px] font-bold text-slate-400 mt-1 uppercase">Dispatched From: <br/>${ambData[i].hospital}</div>
+            </div>
+        `);
+    });
+    let angle = 0;
+    window.ambMapInterval = setInterval(() => {
+        angle += 0.05;
+        ambs[0].setLatLng([state.location.lat + Math.sin(angle)*0.005, state.location.lng + Math.cos(angle)*0.005]);
+        ambs[1].setLatLng([state.location.lat - 0.003 + Math.cos(angle)*0.003, state.location.lng + 0.008 + Math.sin(angle)*0.003]);
+        ambs[2].setLatLng([state.location.lat + 0.007 + Math.sin(angle)*0.004, state.location.lng - 0.004 + Math.cos(angle)*0.004]);
+    }, 1000);
+};
+
+window.updateMapMarkers = () => {
+    if(!window.mapInstance || !window.hospLayer) return;
+    window.hospLayer.clearLayers();
+    const hospHtml = `<div class="w-8 h-8 bg-red-600 rounded-xl border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-xs">H</div>`;
+    const hospIcon = L.divIcon({className: '', html: hospHtml, iconSize: [32, 32], iconAnchor: [16,16]});
+    state.hospitals.slice(0, 15).forEach(h => {
+        if(h.lat && h.lng) {
+            L.marker([parseFloat(h.lat), parseFloat(h.lng)], {icon: hospIcon})
+                .addTo(window.hospLayer)
+                .bindPopup(`
+                    <div class="p-1">
+                        <b class="text-slate-800 text-sm block mb-1">${h.name}</b>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">${(h.distance||0).toFixed(2)} km away</span>
+                        <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                            <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded">BEDS: ${h.beds}</span>
+                            <span class="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded">ICU: ${h.icuBeds}</span>
+                        </div>
+                    </div>
+                `);
+        }
+    });
+}
