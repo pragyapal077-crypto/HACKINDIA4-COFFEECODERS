@@ -1071,4 +1071,93 @@ function AdminPanelView() {
                         <p class="text-[10px] text-slate-400 uppercase font-bold mt-1">ICU Occupancy</p>
                     </div>
                 </div>
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
+                    <div class="flex items-center gap-4">
+                        <h2 class="text-3xl font-extrabold tracking-tight" id="active-dept-title">${(h.departments || []).find(d => d.id === state.adminUi.activeDeptId)?.name || 'Unit'}</h2>
+                        <div class="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                            <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                            <span class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Live Roster</span>
+                        </div>
+                    </div>
 
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative grow md:grow-0">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="staff-search" oninput="window.renderDoctorGrid()" placeholder="Search staff..." class="pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64 text-sm shadow-sm">
+                        </div>
+                        <button onclick="window.toggleModal('staff-modal', true)" class="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 text-sm shrink-0">
+                            <i class="fa-solid fa-user-plus"></i>
+                            <span>Add Personnel</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="doctor-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-20"></div>
+            </main>
+        </div>
+
+        <div id="staff-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] items-center justify-center p-4">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden border border-white/20 modal-enter" onclick="event.stopPropagation()">
+                <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
+                    <div>
+                        <h3 class="text-xl font-bold">Onboard Staff</h3>
+                        <p class="text-xs text-slate-400 font-medium" id="modal-dept-context">Assigning to Unit</p>
+                    </div>
+                    <button onclick="window.toggleModal('staff-modal', false)" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Full Name</label>
+                        <input id="new-staff-name" type="text" placeholder="Dr. Jane Smith" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Shift Assignment</label>
+                        <div class="grid grid-cols-2 gap-2" id="shift-selector">
+                            <button onclick="window.selectShift(this, 'Morning')" class="shift-btn p-3 rounded-xl border text-xs font-bold transition-all bg-emerald-600 text-white border-emerald-600">Morning</button>
+                            <button onclick="window.selectShift(this, 'Afternoon')" class="shift-btn p-3 rounded-xl border text-xs font-bold transition-all bg-white text-slate-600 border-slate-200">Afternoon</button>
+                            <button onclick="window.selectShift(this, 'Evening')" class="shift-btn p-3 rounded-xl border text-xs font-bold transition-all bg-white text-slate-600 border-slate-200">Evening</button>
+                            <button onclick="window.selectShift(this, 'Night')" class="shift-btn p-3 rounded-xl border text-xs font-bold transition-all bg-white text-slate-600 border-slate-200">Night</button>
+                        </div>
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="window.toggleModal('staff-modal', false)" class="flex-1 py-4 text-slate-400 font-bold hover:text-slate-600">Cancel</button>
+                        <button onclick="window.addStaff()" class="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 shadow-xl shadow-emerald-100 uppercase tracking-widest text-xs">Authorize</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dept-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] items-center justify-center p-4">
+            <div class="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden border border-white/20 modal-enter" onclick="event.stopPropagation()">
+                <div class="p-8 border-b border-slate-100 flex justify-between items-center bg-blue-50/30">
+                    <div>
+                        <h3 class="text-xl font-bold">New Department</h3>
+                        <p class="text-xs text-slate-400 font-medium">Expand Capability</p>
+                    </div>
+                    <button onclick="window.toggleModal('dept-modal', false)" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">Unit Name</label>
+                        <input id="new-dept-name" type="text" placeholder="e.g. Oncology" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold">
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="window.toggleModal('dept-modal', false)" class="flex-1 py-4 text-slate-400 font-bold hover:text-slate-600">Cancel</button>
+                        <button onclick="window.addDepartment()" class="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-100 uppercase tracking-widest text-xs">Create Unit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function LoginView() {
+    return `
+        <div class="h-full bg-slate-900 flex flex-col justify-center p-8 animate-in relative">
+            <button onclick="window.setState({view: 'user'})" class="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white z-10 hover:bg-white/20 transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
