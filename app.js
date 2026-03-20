@@ -244,12 +244,15 @@ function mergeHospitals() {
 }
 
 function listenToFirebase() {
+    if (window.__hospitalsListenerActive) return;
     const hospitalsRef = collection(db, 'hospitals');
+    window.__hospitalsListenerActive = true;
     onSnapshot(hospitalsRef, (snapshot) => {
         state.firebaseHospitals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         mergeHospitals();
         window.updateLiveDOM();
     }, (err) => {
+        window.__hospitalsListenerActive = false;
         if (err && err.code === 'permission-denied') {
             window.showToast("Cloud read blocked. Running in local mode.");
         }
@@ -303,7 +306,7 @@ async function fetchOSMData(lat, lng) {
                 assetTotals: { icuBeds: 20, ventilators: 10 }
             };
         })
-        // Keep only the closest 100 OSM hospitals within 0-100 km.
+        // Keep all OSM hospitals within 0-100 km.
         .filter(h => Number.isFinite(h.distance) && h.distance >= 0 && h.distance <= 100)
         .sort((a, b) => (a.distance || 0) - (b.distance || 0))
         ;
@@ -313,10 +316,13 @@ async function fetchOSMData(lat, lng) {
 }
 
 async function initApp() {
-    listenToFirebase();
     try { 
         await signInAnonymously(auth); 
+        listenToFirebase();
     } catch (e) {}
+    onAuthStateChanged(auth, (user) => {
+        if (user) listenToFirebase();
+    });
     navigator.geolocation.getCurrentPosition(
         async (pos) => {
             const { latitude, longitude } = pos.coords;
@@ -1361,8 +1367,8 @@ function AdminPanelView() {
     `;
     
     return `
-        <div class="flex flex-col md:flex-row min-h-[100dvh] w-full bg-slate-50 animate-in relative">
-            <aside class="w-full md:w-80 bg-white border-r border-slate-200 p-6 flex flex-col shrink-0 overflow-y-auto custom-scrollbar md:h-[100dvh]">
+        <div class="flex flex-col md:flex-row h-full w-full bg-slate-50 animate-in relative overflow-hidden">
+            <aside class="w-full md:w-80 bg-white border-r border-slate-200 p-5 md:p-6 flex flex-col shrink-0 overflow-y-auto custom-scrollbar md:h-full md:min-h-0">
                 <div class="flex items-center justify-between mb-8">
                     <div class="flex items-center gap-3">
                         <div class="p-2 bg-emerald-600 rounded-lg text-white shadow-lg shadow-emerald-200">
@@ -1484,7 +1490,7 @@ function AdminPanelView() {
                 </div>
             </aside>
 
-            <main class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-slate-50 md:h-[100dvh]">
+            <main class="flex-1 min-h-0 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-slate-50 md:h-full">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center">
                         <div class="flex justify-between items-start mb-2 text-slate-400">
