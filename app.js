@@ -23,3 +23,20 @@ let state = {
     loading: true, 
     view: 'user', 
     activeTab: 'home', 
+    lang: 'en',
+    location: { lat: 28.6139, lng: 77.2090, name: "Locating...", granted: false },
+    osmHospitals: [], 
+    firebaseHospitals: [], 
+    hospitals: [],
+    searchQuery: '', 
+    isAiModal: false, 
+    aiMessages: [], 
+    isAiThinking: false,
+    adminHospitalId: null, 
+    viewingHospitalDetail: null
+};
+window.state = state;
+
+function t() { 
+    return TRANSLATIONS[state.lang]; 
+}
