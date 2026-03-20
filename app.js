@@ -347,5 +347,9 @@ window.triggerAutoSave = (hId) => {
     clearTimeout(window.debounceTimer);
     window.debounceTimer = setTimeout(async () => {
         const h = state.hospitals.find(x => x.id === hId);
-        if (h) {
-
+        if (h) {     try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'hospitals', h.id), h, { merge: true });
+            } catch(e) {}
+        }
+    }, 1500); 
+};
