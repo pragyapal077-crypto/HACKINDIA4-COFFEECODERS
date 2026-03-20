@@ -1740,7 +1740,7 @@ function render() {
             <main class="flex-1 flex flex-col overflow-hidden relative bg-[#f8fafc]">
                 ${content}
             </main>
-            <nav class="absolute bottom-0 w-full bg-white/95 backdrop-blur-2xl border-t border-slate-100 flex justify-around items-center p-4 pb-safe z-[200]">
+            <nav class="w-full flex-shrink-0 sticky bottom-0 bg-white/95 backdrop-blur-2xl border-t border-slate-100 flex justify-around items-center p-4 pb-safe z-[200]">
                 ${tabs.map(tab => {
                     if (tab.central) {
                         return `
