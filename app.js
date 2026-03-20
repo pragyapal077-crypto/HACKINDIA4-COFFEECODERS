@@ -777,7 +777,7 @@ window.renderDoctorGrid = () => {
     }
 
     grid.innerHTML = filtered.map(doc => `
-        <div onclick="window.toggleStaffPresence(${doc.id})" class="group relative cursor-pointer p-6 rounded-[2.5rem] border transition-all duration-300 hover:shadow-xl ${doc.present ? 'bg-white border-green-100' : 'bg-slate-100 border-slate-200 opacity-60 grayscale shadow-inner'}">
+        <div onclick="window.toggleStaffPresence(${doc.id})" class="group relative cursor-pointer p-6 rounded-[2.5rem] border transition-all duration-300 hover:shadow-xl overflow-hidden ${doc.present ? 'bg-white border-green-100' : 'bg-slate-100 border-slate-200 opacity-60 grayscale shadow-inner'}">
             <button onclick="event.stopPropagation(); window.removeStaff(${doc.id})" class="absolute top-5 right-5 p-2 bg-red-50 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white">
                 <i class="fa-solid fa-trash-can text-xs"></i>
             </button>
@@ -792,7 +792,7 @@ window.renderDoctorGrid = () => {
                     <p class="text-[9px] text-slate-400 font-bold">L-SYNC: ${doc.lastActive || 'Now'}</p>
                 </div>
             </div>
-            <h3 class="font-extrabold text-lg text-slate-800 leading-tight mb-1 break-words">${doc.name}</h3>
+            <h3 class="font-extrabold text-lg text-slate-800 leading-tight mb-1 truncate break-words overflow-hidden whitespace-nowrap">${doc.name}</h3>
             <p class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-5">${doc.shift || 'General'} Duty</p>
             <div class="flex items-center justify-between pt-4 border-t border-slate-50" onclick="event.stopPropagation()">
                 <span class="text-xs font-bold text-slate-500">Consultation Fee</span>
@@ -1491,8 +1491,8 @@ function AdminPanelView() {
             </aside>
 
             <main class="flex-1 min-h-0 p-4 md:p-8 overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 md:h-full">
-                <div class="grid grid-cols-2 gap-4 mb-8">
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0 overflow-hidden">
                         <div class="flex justify-between items-start mb-2 text-slate-400">
                             <i class="fa-solid fa-phone text-lg"></i>
                             <span class="text-[8px] font-bold tracking-widest uppercase">Contact</span>
@@ -1509,7 +1509,7 @@ function AdminPanelView() {
                             <span class="text-[10px] text-slate-400 uppercase font-bold leading-tight">Beds</span>
                         </div>
                     </div>
-                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0 overflow-hidden">
                         <div class="flex justify-between items-start mb-2 text-amber-500">
                             <i class="fa-solid fa-truck-medical text-lg"></i>
                             <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">Emergency</span>
@@ -1517,6 +1517,16 @@ function AdminPanelView() {
                         <div class="flex items-center gap-2 flex-wrap">
                             <input id="admin-amb-${h.id}" type="number" value="${h.ambulances || 0}" oninput="window.updateHospitalStat('${h.id}', 'ambulances', this.value)" class="text-2xl font-extrabold w-16 bg-transparent outline-none text-slate-800">
                             <span class="text-[10px] text-slate-400 uppercase font-bold leading-tight break-words">Ambulance</span>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center min-w-0 overflow-hidden">
+                        <div class="flex justify-between items-start mb-2 text-sky-500">
+                            <i class="fa-solid fa-stethoscope text-lg"></i>
+                            <span class="text-[8px] font-bold text-slate-400 tracking-widest uppercase">General Medicine</span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-2xl font-extrabold text-slate-800">${h.generalMedicineBeds || 0}</span>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold leading-tight">Available</span>
                         </div>
                     </div>
                     <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm min-w-0">
@@ -1550,7 +1560,7 @@ function AdminPanelView() {
                     </div>
                 </div>
 
-                <div id="doctor-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 pb-20"></div>
+                <div id="doctor-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-5 pb-20"></div>
             </main>
         </div>
 
