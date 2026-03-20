@@ -131,7 +131,7 @@ const FIRST_AID_GUIDES = {
         { id: 'cpr', title: 'CPR (প্রাপ্তবয়স্ক)', steps: ['নিরাপত্তা পরীক্ষা করুন', '108 কল করুন', 'বুকের মাঝখানে জোরে চাপ দিন', 'বুক প্রসারিত হতে দিন', 'শ্বাস দিন'], color: 'bg-red-500', icon: 'heart-pulse' },
         { id: 'choking', title: 'শ্বাসরোধ', steps: ['ব্যক্তির পিছনে দাঁড়ান', 'পিঠে 5 বার চাপড় দিন', 'পেটে 5 বার চাপ দিন', 'পুনরাবৃত্তি করুন'], color: 'bg-orange-500', icon: 'wind' },
         { id: 'bleeding', title: 'রক্তপাত', steps: ['শক্ত চাপ দিন', 'পরিষ্কার কাপড় ব্যবহার করুন', 'আহত স্থান উঁচু করুন', 'ব্যান্ডেজ সরাবেন না'], color: 'bg-rose-600', icon: 'droplet' },
-        { id: 'burns', title: 'পোড়া', steps: ['10-20 মিনিট ঠান্ডা জলে ধুয়ে ফেলুন', 'গয়না সরিয়ে ফেলুন', 'পরিষ্কার কাপড় দিয়ে ঢেকে দিন', 'বরফ লাগাবেনবিধা'], color: 'bg-amber-500', icon: 'flame' },
+        { id: 'burns', title: 'পোড়া', steps: ['10-20 মিনিট ঠান্ডা জলে ধুয়ে ফেলুন', 'গয়না সরিয়ে ফেলুন', 'পরিষ্কার কাপড় দিয়ে ঢেকে দিন', 'বরফ লাগাবেন না'], color: 'bg-amber-500', icon: 'flame' },
         { id: 'heart', title: 'হার্ট অ্যাটাক', steps: ['রোগীকে বসান', 'পোশাক আলগা করুন', 'ওষুধের কথা জিজ্ঞাসা করুন', 'অ্যাসপিরিন দিন'], color: 'bg-red-600', icon: 'activity' },
         { id: 'stroke', title: 'স্ট্রোক', steps: ['মুখ বেঁকে গেছে?', 'হাত দুর্বল?', 'কথা বলতে সমস্যা?', '108 কল করুন'], color: 'bg-purple-500', icon: 'brain' }
     ],
@@ -165,30 +165,18 @@ const SMART_SEARCH_MAP = {
     'eye': 'ophthalmologist', 'aankh': 'ophthalmologist', 'vision': 'ophthalmologist',
     'emergency': 'emergency specialist'
 };
-const SMART_SEARCH_MAP = {
-    'heart': 'cardiologist', 'dil': 'cardiologist', 'chest': 'cardiologist', 'attack': 'cardiologist',
-    'head': 'neurologist', 'brain': 'neurologist', 'stroke': 'neurologist', 'sir': 'neurologist',
-    'bone': 'orthopedic', 'fracture': 'orthopedic', 'haddi': 'orthopedic', 'accident': 'emergency specialist',
-    'child': 'pediatrician', 'kid': 'pediatrician', 'baby': 'pediatrician', 'fever': 'general physician',
-    'skin': 'dermatologist', 'burn': 'dermatologist', 'rash': 'dermatologist',
-    'stomach': 'gastroenterologist', 'pet': 'gastroenterologist', 'vomit': 'gastroenterologist',
-    'lungs': 'pulmonologist', 'breath': 'pulmonologist', 'asthma': 'pulmonologist',
-    'women': 'gynecologist', 'pregnancy': 'gynecologist',
-    'eye': 'ophthalmologist', 'vision': 'ophthalmologist',
-    'emergency': 'emergency specialist'
-};
 
+// --- CORE FUNCTIONS ---
 window.showToast = function(msg) {
     const container = document.getElementById('app-container');
-    if (!container) return;
     const id = 't' + Date.now();
     const toastHTML = `
-        <div id="${id}" class="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] bg-slate-900 text-white px-5 py-3 rounded-full font-black text-[10px] text-center uppercase tracking-widest shadow-2xl border border-slate-700 animate-in whitespace-nowrap">
+        <div id="${id}" class="fixed top-24 left-4 right-4 z-[300] bg-slate-900 text-white p-4 rounded-2xl font-black text-[10px] text-center uppercase tracking-widest shadow-2xl animate-in">
             ${msg}
         </div>
     `;
     container.insertAdjacentHTML('beforeend', toastHTML);
-    setTimeout(() => document.getElementById(id)?.remove(), 3500);
+    setTimeout(() => document.getElementById(id)?.remove(), 4000);
 };
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -231,125 +219,388 @@ function listenToFirebase() {
     onSnapshot(hospitalsRef, (snapshot) => {
         state.firebaseHospitals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         mergeHospitals();
-        window.updateLiveDOM();
+        
+        if (state.view === 'user') {
+            if (state.activeTab === 'home') {
+                const container = document.getElementById('hlist');
+                if(container) { container.innerHTML = window.renderList(); lucide.createIcons(); }
+            } else if (state.activeTab === 'map') {
+                if(window.updateMapMarkers) window.updateMapMarkers();
+            } else if (state.activeTab === 'blood') {
+                const container = document.getElementById('blood-list-container');
+                if(container) { container.innerHTML = window.renderBloodList(); lucide.createIcons(); }
+            }
+            
+            if (state.viewingHospitalDetail) {
+                const popupContent = document.getElementById('popup-internal-content');
+                if(popupContent) {
+                    popupContent.innerHTML = window.renderPopupInnerHtml();
+                    lucide.createIcons();
+                }
+            }
+        }
+    }, (error) => {
+        console.error("Firebase Read Error: ", error);
+        window.showToast("Cloud Read Error: " + error.message);
     });
 }
 
 async function initApp() {
-    listenToFirebase();
-    const fallbackTimer = setTimeout(() => {
+    // FORCE HARD-LOCK SPLASH SCREEN FOR EXACTLY 5 SECONDS
+    setTimeout(() => {
         mergeHospitals();
         setState({ loading: false });
     }, 5000);
 
+    listenToFirebase(); 
+
     try { 
         await signInAnonymously(auth); 
-    } catch (e) {}
-    
+    } catch (e) { 
+        console.warn("Local Auth Notice: Working offline/local."); 
+    }
+
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
         state.location = { lat: latitude, lng: longitude, granted: true, name: "GPS Active" };
         
         try {
-            const osmQuery = `[out:json];node["amenity"="hospital"](around:100000,${latitude},${longitude});out body;`;
+            const osmQuery = `[out:json];node["amenity"="hospital"](around:15000,${latitude},${longitude});out body;`;
             const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(osmQuery)}`);
             const data = await res.json();
             
             const specs = ["Cardiologist", "Neurologist", "Orthopedic Surgeon", "General Physician", "Pediatrician"];
-            const elements = data.elements.slice(0, 100); 
             
-            state.osmHospitals = elements.map(h => {
+            state.osmHospitals = data.elements.map(h => {
                 const spec = specs[Math.floor(Math.random() * specs.length)];
-                const randomPhone = '+91-' + Math.floor(9000000000 + Math.random() * 999999999);
                 return {
                     id: h.id.toString(), 
                     name: h.tags.name || "Medical Center", 
                     lat: h.lat, 
                     lng: h.lon,
+                    // Extract Real Phone number from OpenStreetMaps tags
+                    phone: h.tags.phone || h.tags['contact:phone'] || h.tags['mobile'] || null,
                     distance: calculateDistance(latitude, longitude, h.lat, h.lon),
-                    beds: Math.floor(Math.random() * 100) + 20, 
-                    icuBeds: Math.floor(Math.random() * 20) + 5, 
-                    ventilators: Math.floor(Math.random() * 10) + 2, 
-                    doctors: Math.floor(Math.random() * 30) + 5, 
-                    cost: Math.floor(Math.random() * 1000) + 300, 
-                    specialty: spec,
-                    blood: { 
-                        'O+': Math.floor(Math.random() * 50), 
-                        'O-': Math.floor(Math.random() * 20), 
-                        'A+': Math.floor(Math.random() * 40), 
-                        'A-': Math.floor(Math.random() * 15), 
-                        'B+': Math.floor(Math.random() * 45), 
-                        'B-': Math.floor(Math.random() * 10), 
-                        'AB+': Math.floor(Math.random() * 25), 
-                        'AB-': Math.floor(Math.random() * 5) 
-                    }, 
-                    medicines: { "Oxygen Cylinders": Math.floor(Math.random() * 100) },
+                    beds: 0, icuBeds: 0, ventilators: 0, doctors: 0, cost: 500, specialty: spec,
+                    blood: { 'O+': 0, 'AB-': 0, 'B+': 0 }, 
+                    medicines: { "Oxygen Cylinders": 0 },
                     doctorsList: [{type: 'General Physician', price: 500}],
-                    phone: randomPhone,
                     isAutoPilot: false
                 };
             });
             mergeHospitals();
-            clearTimeout(fallbackTimer);
-            setState({ loading: false });
-        } catch (e) {
-            clearTimeout(fallbackTimer);
-            setState({ loading: false });
+        } catch (e) { 
+            console.error("OSM Error, falling back to Firebase only.");
         }
     }, () => {
-        clearTimeout(fallbackTimer);
-        setState({ loading: false });
+        console.warn("Location denied, falling back to default/Firebase.");
     }, { timeout: 5000, enableHighAccuracy: true });
 }
 
-window.updateLiveDOM = () => {
-    if (state.view === 'user') {
-        if (state.activeTab === 'home') {
-            const el = document.getElementById('hlist');
-            if(el) { el.innerHTML = window.renderList(); lucide.createIcons(); }
-        } else if (state.activeTab === 'blood') {
-            const el = document.getElementById('blood-list-container');
-            if(el) { el.innerHTML = window.renderBloodList(); lucide.createIcons(); }
-        } else if (state.activeTab === 'map') {
-            if(window.updateMapMarkers) window.updateMapMarkers();
-        }
-        
-        if (state.viewingHospitalDetail) {
-            const popupContent = document.getElementById('popup-internal-content');
-            if(popupContent) {
-                popupContent.innerHTML = window.renderPopupInnerHtml();
-                lucide.createIcons();
-            }
-        }
-    } else if (state.view === 'admin') {
-        const h = state.hospitals.find(x => x.id === state.adminHospitalId);
-        if (h) {
-            const bedsInp = document.getElementById(`admin-beds-${h.id}`);
-            if (bedsInp && document.activeElement !== bedsInp) bedsInp.value = h.beds;
-            
-            const icuInp = document.getElementById(`admin-icu-${h.id}`);
-            if (icuInp && document.activeElement !== icuInp) icuInp.value = h.icuBeds;
-
-            const phoneInp = document.getElementById(`admin-phone-${h.id}`);
-            if (phoneInp && document.activeElement !== phoneInp) phoneInp.value = h.phone || '';
-
-            Object.keys(h.blood || {}).forEach(bType => {
-                const safeId = bType.replace('+', 'p').replace('-', 'm');
-                const bloodInp = document.getElementById(`admin-blood-${h.id}-${safeId}`);
-                if(bloodInp && document.activeElement !== bloodInp) bloodInp.value = h.blood[bType];
-            });
-        }
-    }
-};
+// --- AUTOMATION: BACKGROUND SYNC & HIS SIMULATOR ---
 
 window.debounceTimer = null;
 window.triggerAutoSave = (hId) => {
     clearTimeout(window.debounceTimer);
     window.debounceTimer = setTimeout(async () => {
         const h = state.hospitals.find(x => x.id === hId);
-        if (h) {     try {
+        if (h) {
+            try {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'hospitals', h.id), h, { merge: true });
-            } catch(e) {}
+            } catch(e) {
+                console.error("Background save failed", e);
+            }
         }
-    }, 1500); 
+    }, 1000); 
 };
+
+window.autoPilotInterval = null;
+window.toggleAutoPilot = (hId) => {
+    const h = state.hospitals.find(x => x.id === hId);
+    if (!h) return;
+    
+    h.isAutoPilot = !h.isAutoPilot;
+    
+    if (h.isAutoPilot) {
+        window.showToast("HIS Auto-Pilot Enabled: Simulating live updates");
+        window.autoPilotInterval = setInterval(async () => {
+            const currentH = state.hospitals.find(x => x.id === hId);
+            if(!currentH || !currentH.isAutoPilot) {
+                clearInterval(window.autoPilotInterval);
+                return;
+            }
+            
+            if(Math.random() > 0.5 && currentH.beds > 0) currentH.beds--;
+            else if(Math.random() > 0.5 && currentH.beds < 200) currentH.beds++;
+
+            if(Math.random() > 0.7 && currentH.icuBeds > 0) currentH.icuBeds--;
+            else if(Math.random() > 0.7 && currentH.icuBeds < 50) currentH.icuBeds++;
+
+            const bloodTypes = Object.keys(currentH.blood || {});
+            if(bloodTypes.length > 0) {
+                const randBlood = bloodTypes[Math.floor(Math.random() * bloodTypes.length)];
+                if(Math.random() > 0.5) currentH.blood[randBlood]++;
+                else if(currentH.blood[randBlood] > 0) currentH.blood[randBlood]--;
+            }
+
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'hospitals', hId), currentH, { merge: true });
+            } catch(e) {}
+            
+            if(state.view === 'admin') {
+                const bedsInp = document.getElementById(`admin-beds-${hId}`);
+                if(bedsInp) bedsInp.value = currentH.beds;
+                const icuInp = document.getElementById(`admin-icu-${hId}`);
+                if(icuInp) icuInp.value = currentH.icuBeds;
+            }
+
+        }, 5000); 
+    } else {
+        clearInterval(window.autoPilotInterval);
+        window.showToast("HIS Auto-Pilot Disabled");
+    }
+    
+    render();
+    window.triggerAutoSave(hId);
+};
+
+// --- HANDLERS ---
+window.handleLogin = async () => {
+    const user = document.getElementById('login-user').value;
+    const pass = document.getElementById('login-pass').value;
+    let admin = state.firebaseHospitals.find(a => a.adminUser === user && a.adminPass === pass);
+    
+    if (admin) {
+        setState({ view: 'admin', adminHospitalId: admin.id });
+        window.showToast("Connection to Firebase Secured.");
+        if(admin.isAutoPilot) window.toggleAutoPilot(admin.id); 
+    } else {
+        window.showToast("Invalid Credentials or Hospital Not Synced.");
+    }
+};
+
+window.handleLogout = () => {
+    if(window.autoPilotInterval) {
+        clearInterval(window.autoPilotInterval);
+    }
+    setState({view: 'user', adminHospitalId: null});
+}
+
+window.handleRegister = async () => {
+    const name = document.getElementById('reg-name').value;
+    const user = document.getElementById('reg-user').value;
+    const pass = document.getElementById('reg-pass').value;
+    const address = document.getElementById('reg-address').value || state.location.name;
+    const phone = document.getElementById('reg-phone').value || null;
+    const lat = parseFloat(document.getElementById('reg-lat').value) || state.location.lat;
+    const lng = parseFloat(document.getElementById('reg-lng').value) || state.location.lng;
+    
+    if(!name || !user || !pass) return window.showToast("Required fields missing");
+
+    const normalize = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const nameQuery = normalize(name);
+    const existingHospital = state.hospitals.find(h => normalize(h.name) === nameQuery);
+    
+    const targetId = existingHospital ? existingHospital.id : 'h-' + Date.now();
+    
+    const newHospital = {
+        id: targetId, 
+        name: existingHospital ? existingHospital.name : name, 
+        address: address, 
+        phone: existingHospital && existingHospital.phone ? existingHospital.phone : phone,
+        adminUser: user, 
+        adminPass: pass, 
+        lat: lat, 
+        lng: lng, 
+        distance: calculateDistance(state.location.lat, state.location.lng, lat, lng),
+        beds: existingHospital ? existingHospital.beds : 50, 
+        icuBeds: existingHospital ? existingHospital.icuBeds : 10, 
+        ventilators: existingHospital ? existingHospital.ventilators : 5, 
+        doctors: existingHospital ? existingHospital.doctors : 15, 
+        cost: existingHospital ? existingHospital.cost : 500, 
+        specialty: existingHospital ? existingHospital.specialty : "Multispecialty",
+        blood: existingHospital ? existingHospital.blood : { 'O+': 20, 'AB-': 5, 'B+': 15 }, 
+        medicines: existingHospital ? existingHospital.medicines : { "Oxygen Cylinders": 30 },
+        doctorsList: existingHospital && existingHospital.doctorsList ? existingHospital.doctorsList : [{ type: 'General Physician', price: 500 }],
+        isAutoPilot: false
+    };
+
+    try {
+        if(!existingHospital) {
+            state.firebaseHospitals.push(newHospital);
+        } else {
+            const idx = state.firebaseHospitals.findIndex(h => h.id === targetId);
+            if(idx > -1) state.firebaseHospitals[idx] = newHospital;
+            else state.firebaseHospitals.push(newHospital);
+        }
+        
+        mergeHospitals();
+        
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'hospitals', targetId), newHospital, {merge: true});
+        
+        setState({ view: 'admin', adminHospitalId: targetId });
+        window.showToast("Hospital Data Secured & Overridden in Firebase");
+    } catch (e) { 
+        console.error(e);
+        window.showToast("Firebase Error: Check Console Logs or Rules. " + e.message); 
+    }
+};
+
+window.handleAdminPublish = async () => {
+    const h = state.hospitals.find(h => h.id === state.adminHospitalId);
+    if (!h) return;
+    
+    try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'hospitals', h.id), h, { merge: true });
+        window.showToast("Live Updates Uploaded to Cloud");
+    } catch(e) { 
+        window.showToast("Sync Failed: " + e.message); 
+    }
+};
+
+window.updateHospitalStatText = (hId, key, val) => { 
+    const h = state.hospitals.find(x => x.id === hId); 
+    if (h) {
+        h[key] = val; 
+        window.triggerAutoSave(hId);
+    }
+};
+
+window.updateHospitalStat = (hId, key, val) => { 
+    const h = state.hospitals.find(x => x.id === hId); 
+    if (h) {
+        h[key] = parseInt(val) || 0; 
+        window.triggerAutoSave(hId);
+    }
+};
+
+window.updateHospitalBlood = (hId, bType, val) => { 
+    const h = state.hospitals.find(x => x.id === hId); 
+    if (h && h.blood) {
+        h.blood[bType] = parseInt(val) || 0; 
+        window.triggerAutoSave(hId);
+    }
+};
+
+window.updateHospitalMeds = (hId, mType, val) => { 
+    const h = state.hospitals.find(x => x.id === hId); 
+    if (h && h.medicines) {
+        h.medicines[mType] = parseInt(val) || 0; 
+        window.triggerAutoSave(hId);
+    }
+};
+
+window.updateDoctor = (hId, idx, key, val) => {
+    const h = state.hospitals.find(x => x.id === hId);
+    if (h && h.doctorsList) {
+        h.doctorsList[idx][key] = key === 'price' ? parseInt(val) || 0 : val;
+        if (idx === 0 && key === 'price') h.cost = parseInt(val) || 0;
+        window.triggerAutoSave(hId);
+    }
+};
+
+window.addDoctorSlot = (hId) => {
+    const h = state.hospitals.find(x => x.id === hId);
+    if (h) {
+        if(!h.doctorsList) h.doctorsList = [];
+        h.doctorsList.push({ type: 'General Physician', price: 500 });
+        window.triggerAutoSave(hId);
+        setState({}, true);
+    }
+};
+
+// --- LEAFLET SATELLITE MAP INITIALIZATION ---
+window.initLeafletMap = () => {
+    if(window.mapInstance) {
+        window.mapInstance.off();
+        window.mapInstance.remove();
+    }
+    
+    const container = document.getElementById('leaflet-map');
+    if(!container) return;
+
+    window.mapInstance = L.map('leaflet-map', { 
+        zoomControl: false, 
+        attributionControl: false 
+    }).setView([state.location.lat, state.location.lng], 14);
+    
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 18
+    }).addTo(window.mapInstance);
+
+    const userHtml = `
+        <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_15px_rgba(59,130,246,1)] animate-pulse"></div>
+    `;
+    const userIcon = L.divIcon({className: '', html: userHtml, iconSize: [16, 16], iconAnchor: [8,8]});
+    L.marker([state.location.lat, state.location.lng], {icon: userIcon, zIndexOffset: 1000})
+        .addTo(window.mapInstance)
+        .bindPopup('<b>Your Location</b>');
+
+    window.hospLayer = L.layerGroup().addTo(window.mapInstance);
+    window.updateMapMarkers();
+
+    const ambData = [
+        { plate: 'DL 1C AA 1234', type: 'Advanced Life Support (ALS)', phone: '+91-108', cost: '₹1500 base' },
+        { plate: 'UP 16 BX 9876', type: 'Basic Life Support (BLS)', phone: '+91-9999888877', cost: '₹800 base' },
+        { plate: 'HR 26 XX 5555', type: 'Neonatal Care Unit', phone: '+91-8888777766', cost: '₹2000 base' }
+    ];
+
+    const ambHtml = `
+        <div class="w-6 h-6 bg-white rounded-full border-2 border-blue-600 shadow-[0_0_10px_rgba(255,255,255,1)] flex items-center justify-center text-[10px] amb-marker">🚑</div>
+    `;
+    const ambIcon = L.divIcon({className: '', html: ambHtml, iconSize: [24, 24], iconAnchor: [12,12]});
+    
+    if(window.ambMapInterval) clearInterval(window.ambMapInterval);
+    
+    const ambs = [
+        L.marker([state.location.lat + 0.005, state.location.lng + 0.005], {icon: ambIcon}).addTo(window.mapInstance),
+        L.marker([state.location.lat - 0.003, state.location.lng + 0.008], {icon: ambIcon}).addTo(window.mapInstance),
+        L.marker([state.location.lat + 0.007, state.location.lng - 0.004], {icon: ambIcon}).addTo(window.mapInstance)
+    ];
+
+    ambs.forEach((amb, i) => {
+        amb.bindPopup(`
+            <div class="p-1">
+                <div class="text-xs font-black text-blue-900">${ambData[i].type}</div>
+                <div class="text-[10px] font-bold text-slate-500 mt-1 uppercase tracking-widest">${ambData[i].plate}</div>
+                <div class="text-[11px] font-black text-green-600 mt-2">Contact: ${ambData[i].phone}</div>
+                <div class="text-[10px] font-bold text-slate-400 mt-1">Est. Cost: ${ambData[i].cost}</div>
+            </div>
+        `);
+    });
+
+    let angle = 0;
+    window.ambMapInterval = setInterval(() => {
+        angle += 0.05;
+        ambs[0].setLatLng([state.location.lat + Math.sin(angle)*0.005, state.location.lng + Math.cos(angle)*0.005]);
+        ambs[1].setLatLng([state.location.lat - 0.003 + Math.cos(angle)*0.003, state.location.lng + 0.008 + Math.sin(angle)*0.003]);
+        ambs[2].setLatLng([state.location.lat + 0.007 + Math.sin(angle)*0.004, state.location.lng - 0.004 + Math.cos(angle)*0.004]);
+    }, 1000);
+};
+
+window.updateMapMarkers = () => {
+    if(!window.mapInstance || !window.hospLayer) return;
+    window.hospLayer.clearLayers();
+    
+    const hospHtml = `
+        <div class="w-8 h-8 bg-red-600 rounded-xl border-2 border-white shadow-lg flex items-center justify-center text-white font-bold text-xs">H</div>
+    `;
+    const hospIcon = L.divIcon({className: '', html: hospHtml, iconSize: [32, 32], iconAnchor: [16,16]});
+
+    state.hospitals.slice(0, 15).forEach(h => {
+        if(h.lat && h.lng) {
+            L.marker([parseFloat(h.lat), parseFloat(h.lng)], {icon: hospIcon})
+                .addTo(window.hospLayer)
+                .bindPopup(`
+                    <div class="p-1">
+                        <b class="text-slate-800 text-sm block mb-1">${h.name}</b>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">${(h.distance||0).toFixed(2)} km away</span>
+                        <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+                            <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded">BEDS: ${h.beds}</span>
+                            <span class="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded">ICU: ${h.icuBeds}</span>
+                        </div>
+                    </div>
+                `);
+        }
+    });
+}
